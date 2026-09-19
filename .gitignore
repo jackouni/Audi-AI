@@ -1,6 +1,7 @@
 labs/
 reference/
 CLAUDE*
+data/raw/
 
 .env
 __pycache__/
