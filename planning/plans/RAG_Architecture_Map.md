@@ -101,9 +101,7 @@ This is why swapping the CLI for Gradio on day 2 changes exactly one file. The u
 
 ---
 
-## Two things that will bite you
-
-### The condenser, and why it exists
+## The condenser, and why it exists
 
 Retrieval fires *before* history reaches the prompt. So a follow-up like "how hard is it to replace?" gets embedded on its own, with nothing to resolve "it" against — and the search returns garbage at exactly the moment a demo is going well. The condenser is one cheap `gpt-4o-mini` call at the top of `retrieval.py`: history plus new question in, one standalone search query out.
 
@@ -111,7 +109,7 @@ Two things worth being clear on:
 - It's a **retrieval fix, not a token saver** — its output never reaches the final prompt; it exists purely to become a good embedding.
 - **Don't embed the raw history instead**: embeddings behave more like an average than a sum, so several turns squashed into one fixed-size vector just muddy the meaning. The goal is resolving the pronoun, not adding context.
 
-### Keep retrieved chunks out of permanent history
+## Keep retrieved chunks out of permanent history
 
 History stays plain user/assistant turns. Inject fresh chunks each turn and let them fall away. Store them permanently and your context window is gone by turn four.
 
@@ -124,7 +122,3 @@ History stays plain user/assistant turns. Inject fresh chunks each turn and let 
 - **Confidently blending B8 and B9 facts** → metadata filtering isn't doing its job at query time.
 
 ---
-
-## Next up
-
-Lock the `audi_doc` schema and write `setup_db.py`. It's the chokepoint — `ingest.py` can't insert into a table that doesn't exist, and `retrieval.py` can't query columns it doesn't know the names of. Renaming a column after 200 chunks are embedded means re-running the whole ingest.

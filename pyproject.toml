@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "audi-b9-rag"
+version = "0.1.0"
+description = "RAG chatbot for Audi B9 repair and modification"
+authors = ["Jack Sebben"]
+readme = "README.md"
+package-mode = false  # not a distributable package — lets you run
+                      #   `python src/ingest.py` from the root, no install step
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+
+# Runtime — every question
+openai = "^1.100.2"
+psycopg2-binary = "^2.9.10"           # Postgres driver; `-binary` ships precompiled
+python-dotenv = "^1.1.1"
+
+# Build-time — ingest pipeline
+pdfplumber = "^0.11.0"                # PDF text + table extraction
+python-frontmatter = "^1.1.0"         # splits `---` metadata from body
+requests = "^2.32.0"                  # NHTSA API + Reddit `.json` trick
+langchain-text-splitters = "^0.3.0"   # markdown-header + recursive splitters
+langchain-experimental = "^0.3.4"     # SemanticChunker only
+langchain-openai = "^0.3.30"          # embeddings wrapper SemanticChunker needs
+
+# Day 2, if time
+gradio = "^5.43.1"                    # browser UI wrapping ask()
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

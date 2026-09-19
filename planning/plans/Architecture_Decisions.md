@@ -22,7 +22,8 @@ audi-b9-rag/
 ├── .gitignore
 ├── README.md
 ├── data/
-│   └── raw/                 # markdown + frontmatter, ALL sources
+│   └── raw/                 # ALL sources
+│   └── processed/           # ALL processed sources
 ├── scripts/
 │   ├── fetch_nhtsa.py       # JSON API → markdown files
 │   ├── fetch_reddit.py      # .json trick → markdown files
