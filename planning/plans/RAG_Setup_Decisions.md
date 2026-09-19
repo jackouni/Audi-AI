@@ -1,4 +1,4 @@
-# B9 RAG — Setup Decisions
+# Audi A4 RAG — Setup Decisions
 
 2026-09-19 · Companion to the Data Source Plan and Architecture Decisions
 

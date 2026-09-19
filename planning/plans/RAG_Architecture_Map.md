@@ -1,4 +1,4 @@
-# Audi B9 RAG — Architecture Map
+# Audi A4 RAG — Architecture Map
 
 Companion to the Data Source Plan, Architecture Decisions, and Setup Decisions docs. This one maps how every file connects and what each one is responsible for.
 
