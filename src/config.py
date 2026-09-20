@@ -13,7 +13,22 @@ load_dotenv(PROJECT_ROOT / ".env")
 # --- Corpus ---------------------------------------------------------------
 
 # Every source lands here as one markdown file with frontmatter.
-DATA_DIR = PROJECT_ROOT / "data" / "processed"
+DATA_DIR = PROJECT_ROOT / "data" / "raw"
+
+# --- Chunking -------------------------------------------------------------
+
+# Target size for the FALLBACK splitter only. Most chunks never see it:
+# ingest.py splits on real structure first (one NHTSA complaint = one chunk,
+# one Reddit comment subtree = one chunk) and only hands the recursive splitter
+# the pieces that are still too big afterwards.
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 150
+
+# Floor for a structural piece before it gets merged into its neighbour. Reddit
+# threads are full of one-line comments ("Clean build", "Zero issues") that are
+# noise alone but a useful chorus together — and at TOP_K=5 a junk chunk that
+# matches weakly still costs a real one its slot.
+MIN_CHUNK_CHARS = 250
 
 # --- Models ---------------------------------------------------------------
 
