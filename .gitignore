@@ -3,6 +3,7 @@ reference/
 CLAUDE*
 data/raw/
 data/processed/
+data/sources/
 
 .env
 __pycache__/

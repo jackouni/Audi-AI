@@ -1,14 +1,14 @@
-"""Turn the raw reddit .json thread dumps in data/raw/reddit_threads.py into markdown with frontmatter in data/processed/."""
+"""Turn the raw reddit .json thread dumps in data/sources/reddit_threads.py into markdown with frontmatter in data/raw/."""
 
 import html
 import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "data" / "raw"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "data" / "sources"))
 from reddit_threads import json_reddit_threads  # noqa: E402
 
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 REMOVED_BODIES = {"[deleted]", "[removed]", ""}
 
 CATEGORY_KEYWORDS = [

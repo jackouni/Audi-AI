@@ -12,7 +12,7 @@ MODEL = "a4"
 MODEL_YEARS = range(2017, 2020)  # B9 A4, first three model years
 
 API_URL = "https://api.nhtsa.gov/complaints/complaintsByVehicle"
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 PER_YEAR_CAP = 15  # roadmap target: 20-30 complaints; 3 years x 15 = 45 total
 
 

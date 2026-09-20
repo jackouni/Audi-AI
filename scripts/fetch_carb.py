@@ -1,4 +1,4 @@
-"""Convert a CARB Executive Order CSV export into markdown files with frontmatter in data/processed/.
+"""Convert a CARB Executive Order CSV export into markdown files with frontmatter in data/raw/.
 
 CARB's EO search (https://ww2.arb.ca.gov/our-work/programs/aftermarket-performance-parts)
 doesn't have a JSON API — you search it by hand and export matching rows to CSV.
@@ -29,8 +29,8 @@ COLUMN_MAP = {
     "status": "Status",
 }
 
-CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "carb_eo_export.csv"
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
+CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "sources" / "carb_eo_export.csv"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 EO_LOOKUP_URL = "https://ww2.arb.ca.gov/our-work/programs/aftermarket-performance-parts"
 
 

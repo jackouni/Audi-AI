@@ -19,7 +19,7 @@ from db import get_connection
 # confidently blending B8 and B9 facts.
 #
 # The seven metadata columns are exactly the seven frontmatter keys in
-# data/processed/*.md. Everything is TEXT and nullable: the enums
+# data/raw/*.md. Everything is TEXT and nullable: the enums
 # (source_type, model, engine, category) stay a documented convention, not a
 # CHECK constraint. A typo in one file should not kill a whole ingest run.
 CREATE_TABLE = f"""
