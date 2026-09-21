@@ -2,7 +2,7 @@
 
 The runtime chain, in order:
 
-    1. retrieve context for the question (retrieval.py — not wired up yet)
+    1. retrieve context for the question (retrieval.py: condense -> embed -> search)
     2. assemble the prompt: system instructions + chunks + history + question
     3. send it, get an answer back
     4. append the turn — and only the turn — to history
@@ -17,6 +17,7 @@ from openai import OpenAI
 
 from config import CHAT_MODEL, OPENAI_API_KEY
 from memory import ChatHistory, Message
+from retrieval import search
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -47,21 +48,59 @@ have; they may be partial or only loosely relevant, so use judgment.
 {context}
 """
 
+# An empty result is information, not a failure — it means nothing in the corpus
+# cleared the similarity threshold. Saying so explicitly is what stops the model
+# from inventing a citation for an answer it pulled from general knowledge.
+NO_CONTEXT = """\
+The search of the reference corpus returned nothing above the relevance \
+threshold for this question. Answer from general knowledge, and say up front \
+that the sources don't cover it.
+"""
+
+EXCERPT_TEMPLATE = """\
+[{number}] {title} ({source_type}, similarity {similarity:.2f}){url}
+{text}"""
+
+
+def format_chunks(chunks: list[dict]) -> str:
+    """Render retrieved chunks as a numbered, attributed block.
+
+    The chunk text already carries a `[model · year · category · source_type]`
+    header — ingest.py's `decorate()` prefixes it before embedding. The header
+    added here is for the model's benefit at answer time: a title and source type
+    to cite, and a similarity score so a 0.31 match reads as weaker evidence than
+    a 0.72 one.
+    """
+    return "\n\n---\n\n".join(
+        EXCERPT_TEMPLATE.format(
+            number=number,
+            title=chunk.get("title") or chunk["source_file"],
+            source_type=chunk.get("source_type") or "unknown source",
+            similarity=chunk["similarity"],
+            url=f"\n{chunk['url']}" if chunk.get("url") else "",
+            text=chunk["chunk_text"],
+        )
+        for number, chunk in enumerate(chunks, start=1)
+    )
+
 
 def retrieve_context(question: str, history: ChatHistory) -> str:
-    """Fetch reference chunks for this question. Stubbed until retrieval.py lands.
+    """Fetch reference chunks for this question and build the context message.
 
-    Returning "" makes ask() run as a plain chatbot — same prompt assembly, same
-    memory, just no context block — so the conversation loop is testable before
-    the database is. Wiring retrieval in is this function's body:
+    Everything interesting happens in retrieval.py — condensing the follow-up
+    into a standalone query, embedding it, running the similarity search. This
+    function is just the seam where chunk dicts become prompt text.
 
-        from retrieval import search
-        chunks = search(question, history)
-        return "\\n\\n---\\n\\n".join(chunk["chunk_text"] for chunk in chunks)
-
-    Nothing else in this file changes.
+    Returns the finished developer message, not raw excerpts, because the two
+    outcomes need different framing: a hit list is introduced as "your sources",
+    an empty result as "the search found nothing".
     """
-    return ""
+    chunks = search(question, history)
+
+    if not chunks:
+        return NO_CONTEXT
+
+    return CONTEXT_TEMPLATE.format(context=format_chunks(chunks))
 
 
 def build_input(question: str, history: ChatHistory, context: str) -> list[dict]:
@@ -73,7 +112,7 @@ def build_input(question: str, history: ChatHistory, context: str) -> list[dict]
     messages = [Message("developer", SYSTEM_PROMPT).to_dict()]
 
     if context:
-        messages.append(Message("developer", CONTEXT_TEMPLATE.format(context=context)).to_dict())
+        messages.append(Message("developer", context).to_dict())
 
     messages.extend(history.to_list())
     messages.append(Message("user", question).to_dict())
