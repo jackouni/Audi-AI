@@ -39,14 +39,35 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536  # must match the vector(N) column in setup_db.py
 
 CONDENSER_MODEL = "gpt-4o-mini"  # history + question -> standalone search query
-CHAT_MODEL = "gpt-4o-mini"  # the answer itself
+CHAT_MODEL = "gpt-5.6-luna"  # the answer itself
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # --- Retrieval ------------------------------------------------------------
 
 TOP_K = 5
-SIMILARITY_THRESHOLD = 0.3  # cosine similarity, not distance: higher is closer
+
+# Cosine similarity, not distance: higher is closer.
+#
+# Both numbers are measured, not guessed — `scripts/probe_thresholds.py` prints
+# the scores these came from. On this corpus:
+#
+#   answerable question     top chunk 0.70-0.73
+#   car-adjacent but absent  top chunk 0.52-0.60   (B8 torque spec, BMW mounts)
+#   unrelated entirely       top chunk 0.18-0.27   (sourdough, driving directions)
+#
+# The trap is the middle band. Every document here is Audi A4 prose, so any
+# car-shaped question matches *something* at ~0.5 — which is why a 0.3 floor
+# never fired and the model got handed five irrelevant chunks to answer over.
+SIMILARITY_THRESHOLD = 0.45  # hard floor: below this a chunk is dropped entirely
+
+# If even the BEST chunk is under this, the corpus probably doesn't cover the
+# question. The chunks still go to the model, but framed as weak background
+# rather than as sources — see WEAK_CONTEXT_TEMPLATE in rag.py.
+STRONG_MATCH_THRESHOLD = 0.65
+
+# Tuned on a small sample. If a legitimate question starts coming back with
+# "the sources don't cover this", this is the first number to lower.
 
 # --- Database -------------------------------------------------------------
 

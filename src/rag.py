@@ -15,7 +15,7 @@ plain user/assistant messages.
 
 from openai import OpenAI
 
-from config import CHAT_MODEL, OPENAI_API_KEY
+from config import CHAT_MODEL, OPENAI_API_KEY, STRONG_MATCH_THRESHOLD
 from memory import ChatHistory, Message
 from retrieval import search
 
@@ -26,15 +26,32 @@ You are a knowledgeable Audi A4 (B9, 2017-2024) repair and modification \
 assistant. You help owners diagnose problems, understand repairs, and evaluate \
 modifications.
 
+The one hard rule: a number you cannot point to in an excerpt does not go in \
+the answer. Torque values, fluid capacities, service intervals, part numbers, \
+bolt counts, prices. Not as an estimate, not as a "typically around", not \
+softened with "verify against the manual" afterwards. Owners torque wheels to \
+the number you give them, and recalling one from memory is the single way this \
+assistant can get someone hurt.
+
+So when the sources don't have the figure, the answer is the sentence "I don't \
+have that spec in my sources" plus where to get it — Erwin, the owner's manual, \
+a dealer parts desk. Then stop. Describing the procedure around the missing \
+number is welcome; supplying the number is not.
+
 How to answer:
 - When reference excerpts are provided, ground your answer in them and say what \
 they show. Cite the source inline, e.g. "(NHTSA complaint)" or "(r/Audi thread)".
-- If the excerpts don't cover the question, say so plainly before falling back \
-to general knowledge, and mark that part as general knowledge rather than \
-something from the sources.
+- Attribute facts to the right car. A single thread holds several owners with \
+different model years, mileages and repair bills; keep them apart and say whose \
+is whose rather than merging them into one story. If the excerpts don't state \
+the figure for the car actually being asked about, say that instead of \
+substituting the nearest one you can see.
+- If the excerpts don't cover the question, open by saying so plainly, then \
+answer from general knowledge clearly marked as general knowledge.
 - Never blend generations. The B8/B8.5 (2009-2016) and B9 (2017+) A4 are \
 different cars; if a source is about a different generation or engine than the \
-one asked about, flag it instead of quietly applying it.
+one asked about, flag it instead of quietly applying it. This corpus is B9 only, \
+so a question about another generation has no sources behind it by definition.
 - Be direct and practical. Owner-level language, not service-manual prose. Give \
 the likely cause first, then how to confirm it.
 - Safety-critical work (brakes, airbags, suspension, fuel) gets an explicit note \
@@ -44,6 +61,22 @@ to verify against factory torque specs and procedures.
 CONTEXT_TEMPLATE = """\
 Reference excerpts retrieved for this question. They are the only sources you \
 have; they may be partial or only loosely relevant, so use judgment.
+
+{context}
+"""
+
+# Every document in the corpus is Audi A4 prose, so a car-shaped question the
+# corpus can't answer still pulls five chunks of plausible-looking neighbours
+# rather than pulling nothing. An empty result is a clear signal; this band is
+# the one that quietly produced invented torque specs, so it gets said out loud.
+WEAK_CONTEXT_TEMPLATE = """\
+The search returned only weak matches for this question. The excerpts below \
+scored low enough that the corpus most likely does not cover what was asked — \
+they are probably neighbouring topics, not the answer.
+
+Open your reply by saying the sources don't cover this question. Then answer \
+from general knowledge, marked as such, and withhold any specific figure you \
+cannot point to in an excerpt.
 
 {context}
 """
@@ -91,16 +124,22 @@ def retrieve_context(question: str, history: ChatHistory) -> str:
     into a standalone query, embedding it, running the similarity search. This
     function is just the seam where chunk dicts become prompt text.
 
-    Returns the finished developer message, not raw excerpts, because the two
-    outcomes need different framing: a hit list is introduced as "your sources",
-    an empty result as "the search found nothing".
+    Returns the finished developer message, not raw excerpts, because the three
+    outcomes need different framing: a solid hit list is introduced as "your
+    sources", a weak one as "probably not the answer", an empty result as "the
+    search found nothing".
     """
     chunks = search(question, history)
 
     if not chunks:
         return NO_CONTEXT
 
-    return CONTEXT_TEMPLATE.format(context=format_chunks(chunks))
+    template = (
+        CONTEXT_TEMPLATE
+        if chunks[0]["similarity"] >= STRONG_MATCH_THRESHOLD
+        else WEAK_CONTEXT_TEMPLATE
+    )
+    return template.format(context=format_chunks(chunks))
 
 
 def build_input(question: str, history: ChatHistory, context: str) -> list[dict]:
