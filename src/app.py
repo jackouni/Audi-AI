@@ -16,6 +16,8 @@ ChatHistory from what Gradio displays. Retry, undo and edit then work for free â
 they change what's on screen, and what's on screen *is* the history.
 """
 
+import os
+
 import gradio as gr
 
 from memory import ChatHistory
@@ -76,5 +78,18 @@ demo = gr.ChatInterface(
 )
 
 
-if __name__ == "__main__":
-    demo.launch()
+# Both flags come from the environment so one file covers every way this runs,
+# with no edit between them:
+#
+#   python src/app.py                                localhost only
+#   SHARE=1 python src/app.py                        + a public link, 72 hours
+#   SHARE=1 APP_PASSWORD=hunter2 python src/app.py   + a login box in front
+#   SHARE=1 gradio src/app.py                        + reload on every save
+#
+# The share link tunnels to THIS process â€” the laptop stays the server, so
+# nothing is deployed and the link dies when the script does.
+SHARE = os.getenv("SHARE") == "1"
+AUTH = ("guest", os.getenv("APP_PASSWORD")) if os.getenv("APP_PASSWORD") else None
+
+if __name__ == "__main__" and gr.NO_RELOAD:
+    demo.launch(share=SHARE, auth=AUTH)
