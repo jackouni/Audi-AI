@@ -54,14 +54,16 @@ def to_vector_literal(embedding: list[float]) -> str:
     and the `::vector` cast in the query turns it back into a vector. Same trick
     ingest.py uses on insert.
     """
+
     return "[" + ",".join(str(value) for value in embedding) + "]"
 
 
 def similarity_search(
     embedding: list[float],
-    k: int = TOP_K,
-    threshold: float = SIMILARITY_THRESHOLD,
+    k: int,
+    threshold: float,
 ) -> list[dict]:
+
     """Return the k chunks closest to `embedding`, best match first.
 
     One dict per chunk: every column of the row plus a `similarity` float. Dicts
@@ -72,6 +74,7 @@ def similarity_search(
     rolls back the transaction but leaves the socket open, and this runs once per
     question in a long-lived CLI session.
     """
+
     literal = to_vector_literal(embedding)
 
     with closing(get_connection()) as conn, conn.cursor() as cur:

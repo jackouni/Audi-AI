@@ -68,6 +68,7 @@ def condense(question: str, history: ChatHistory) -> str:
       Slightly worse retrieval beats no answer, and the caller can't do anything
       useful with the exception anyway.
     """
+
     if not len(history):
         return question
 

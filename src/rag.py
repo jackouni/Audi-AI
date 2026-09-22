@@ -104,6 +104,7 @@ def format_chunks(chunks: list[dict]) -> str:
     to cite, and a similarity score so a 0.31 match reads as weaker evidence than
     a 0.72 one.
     """
+
     return "\n\n---\n\n".join(
         EXCERPT_TEMPLATE.format(
             number=number,
