@@ -16,7 +16,8 @@ MAX_MESSAGES = 20
 
 
 class Message:
-    """One turn in the conversation. Becomes a dict at API call time."""
+    # One turn in the conversation. 
+    # Becomes a dict at API call time.
 
     def __init__(self, role: str, content: str):
         self.role = role
@@ -27,7 +28,8 @@ class Message:
 
 
 class ChatHistory:
-    """An ordered list of Messages. Becomes a list of dicts at API call time."""
+    # An ordered list of Messages. 
+    # Becomes a list of dicts at API call time.
 
     def __init__(self):
         self.messages: list[Message] = []
