@@ -9,3 +9,4 @@ data/sources/
 __pycache__/
 *.pyc
 .venv/
+.gradio/
