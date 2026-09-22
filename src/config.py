@@ -43,6 +43,9 @@ CHAT_MODEL = "gpt-5.6-luna"  # the answer itself
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+if not OPENAI_API_KEY:
+    raise SystemExit("OPENAI_API_KEY is not set. Add it to .env in the project root.")
+
 # --- Retrieval ------------------------------------------------------------
 
 TOP_K = 5

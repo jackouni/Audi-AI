@@ -16,7 +16,7 @@ plain user/assistant messages.
 from openai import OpenAI
 
 from config import CHAT_MODEL, OPENAI_API_KEY, STRONG_MATCH_THRESHOLD
-from memory import ChatHistory, Message
+from memory import ChatHistory
 from retrieval import search
 
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -26,17 +26,16 @@ You are a knowledgeable Audi A4 (B9, 2017-2024) repair and modification \
 assistant. You help owners diagnose problems, understand repairs, and evaluate \
 modifications.
 
-The one hard rule: a number you cannot point to in an excerpt does not go in \
-the answer. Torque values, fluid capacities, service intervals, part numbers, \
-bolt counts, prices. Not as an estimate, not as a "typically around", not \
-softened with "verify against the manual" afterwards. Owners torque wheels to \
-the number you give them, and recalling one from memory is the single way this \
-assistant can get someone hurt.
+The one hard rule: a number you cannot point to in an excerpt should not be confidently \
+commented on, you can take a best-guess but mention that you aren't certain - it's okay to \
+say "I don't know, but here's what I can estimate" - soften with "verify against the manual" \
+afterwards. Owners torque wheels to the number you give them, and recalling one from memory \
+is the single way this assistant can get someone hurt.
 
 So when the sources don't have the figure, the answer is the sentence "I don't \
-have that spec in my sources" plus where to get it — Erwin, the owner's manual, \
-a dealer parts desk. Then stop. Describing the procedure around the missing \
-number is welcome; supplying the number is not.
+have that spec in my sources" plus your best guess and where to get a definite source/answer 
+— Erwin, the owner's manual, a dealer parts desk. Then stop. Describing the procedure around the missing \
+number is welcome; supplying the number confidently is not.
 
 How to answer:
 - When reference excerpts are provided, ground your answer in them and say what \
@@ -104,13 +103,14 @@ def format_chunks(chunks: list[dict]) -> str:
     to cite, and a similarity score so a 0.31 match reads as weaker evidence than
     a 0.72 one.
     """
+
     return "\n\n---\n\n".join(
         EXCERPT_TEMPLATE.format(
             number=number,
-            title=chunk.get("title") or chunk["source_file"],
-            source_type=chunk.get("source_type") or "unknown source",
+            title=chunk["title"] or chunk["source_file"],
+            source_type=chunk["source_type"] or "unknown source",
             similarity=chunk["similarity"],
-            url=f"\n{chunk['url']}" if chunk.get("url") else "",
+            url=f"\n{chunk['url']}" if chunk["url"] else "",
             text=chunk["chunk_text"],
         )
         for number, chunk in enumerate(chunks, start=1)
@@ -148,15 +148,12 @@ def build_input(question: str, history: ChatHistory, context: str) -> list[dict]
     Order matters: instructions first, then the fresh context, then the running
     conversation, then the new question last so it's the thing being answered.
     """
-    messages = [Message("developer", SYSTEM_PROMPT).to_dict()]
-
-    if context:
-        messages.append(Message("developer", context).to_dict())
-
-    messages.extend(history.to_list())
-    messages.append(Message("user", question).to_dict())
-
-    return messages
+    return [
+        {"role": "developer", "content": SYSTEM_PROMPT},
+        {"role": "developer", "content": context},
+        *history.to_list(),
+        {"role": "user", "content": question},
+    ]
 
 
 def ask(question: str, history: ChatHistory) -> str:

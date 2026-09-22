@@ -54,7 +54,7 @@ they were mentioned several turns ago.
 CONDENSER_WINDOW = 6
 
 
-def condense(question: str, history: ChatHistory) -> str:
+def condense(question: str, history: ChatHistory | None) -> str:
     """Turn a conversational follow-up into a query that means something alone.
 
     Retrieval fires before history reaches the prompt, so "how hard is it to
@@ -62,13 +62,14 @@ def condense(question: str, history: ChatHistory) -> str:
     results at exactly the moment a demo is going well.
 
     Two shortcuts worth noting:
-    - Empty history means there is nothing to resolve, so the call is skipped
-      entirely. First question of a session costs zero extra latency.
+    - No history (None, or empty) means there is nothing to resolve, so the
+      call is skipped entirely. First question of a session costs zero extra
+      latency.
     - A failed condenser falls back to the raw question rather than raising.
       Slightly worse retrieval beats no answer, and the caller can't do anything
       useful with the exception anyway.
     """
-    if not len(history):
+    if not history:
         return question
 
     recent = history.to_list()[-CONDENSER_WINDOW:]
@@ -110,7 +111,7 @@ def search(
     that are merely the least irrelevant. rag.py treats that as "no sources" and
     says so, which is the behavior we want for an off-topic question.
     """
-    query = condense(question, history) if history is not None else question
+    query = condense(question, history)
     return similarity_search(embed_query(query), k=k, threshold=threshold)
 
 

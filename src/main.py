@@ -9,9 +9,6 @@ input, commands, and what to do when the API errors. app.py will be the same
 twenty lines wrapped in Gradio instead.
 """
 
-import sys
-
-from config import CHAT_MODEL, OPENAI_API_KEY
 from memory import ChatHistory
 from rag import ask
 
@@ -23,11 +20,8 @@ Audi A4 B9 (2017-2024) repair & mod assistant
 {DIVIDER}
 Ask about symptoms, repairs, recalls, or modifications.
 Commands:  !reset  clear the conversation
-           !help   show this list
            exit    quit (or 'quit', or Ctrl-D)
 {DIVIDER}"""
-
-EXIT_WORDS = {"exit", "quit"}
 
 
 def run() -> None:
@@ -45,7 +39,7 @@ def run() -> None:
         if not question:
             continue
 
-        if question.lower() in EXIT_WORDS:
+        if question.lower() in ("exit", "quit"):
             print("Goodbye!")
             break
 
@@ -54,21 +48,17 @@ def run() -> None:
             print("Conversation cleared.")
             continue
 
-        if question == "!help":
-            print(BANNER)
-            continue
-
-        print("Thinking...", end="\r", flush=True)
+        print("Thinking...")
 
         try:
             answer = ask(question, history)
         except KeyboardInterrupt:
-            print("Cancelled.        ")
+            print("Cancelled.")
             continue
         except Exception as error:
-            # An API hiccup shouldn't end the session — report it and keep the
-            # history intact so the next question still has context.
-            print(f"Error: {error}        ")
+            # An API hiccup shouldn't end the session...
+            # log it and keep history intact so the next question still has context.
+            print(f"Error: {error}")
             continue
 
         print(f"Assistant: {answer}")
@@ -76,8 +66,4 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    if not OPENAI_API_KEY:
-        sys.exit("OPENAI_API_KEY is not set. Add it to .env in the project root.")
-
-    print(f"Using {CHAT_MODEL}.")
     run()
