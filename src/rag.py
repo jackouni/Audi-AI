@@ -16,7 +16,7 @@ plain user/assistant messages.
 from openai import OpenAI
 
 from config import CHAT_MODEL, OPENAI_API_KEY, STRONG_MATCH_THRESHOLD
-from memory import ChatHistory, Message
+from memory import ChatHistory
 from retrieval import search
 
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -108,10 +108,10 @@ def format_chunks(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(
         EXCERPT_TEMPLATE.format(
             number=number,
-            title=chunk.get("title") or chunk["source_file"],
-            source_type=chunk.get("source_type") or "unknown source",
+            title=chunk["title"] or chunk["source_file"],
+            source_type=chunk["source_type"] or "unknown source",
             similarity=chunk["similarity"],
-            url=f"\n{chunk['url']}" if chunk.get("url") else "",
+            url=f"\n{chunk['url']}" if chunk["url"] else "",
             text=chunk["chunk_text"],
         )
         for number, chunk in enumerate(chunks, start=1)
@@ -149,15 +149,12 @@ def build_input(question: str, history: ChatHistory, context: str) -> list[dict]
     Order matters: instructions first, then the fresh context, then the running
     conversation, then the new question last so it's the thing being answered.
     """
-    messages = [Message("developer", SYSTEM_PROMPT).to_dict()]
-
-    if context:
-        messages.append(Message("developer", context).to_dict())
-
-    messages.extend(history.to_list())
-    messages.append(Message("user", question).to_dict())
-
-    return messages
+    return [
+        {"role": "developer", "content": SYSTEM_PROMPT},
+        {"role": "developer", "content": context},
+        *history.to_list(),
+        {"role": "user", "content": question},
+    ]
 
 
 def ask(question: str, history: ChatHistory) -> str:
