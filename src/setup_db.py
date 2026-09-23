@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
 
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- lets ingest.py be re-run safely: delete a file's rows, re-insert them
+    -- lets ingest.py be re-run safely: it wipes the table and re-inserts
     UNIQUE (source_file, chunk_index)
 );
 """

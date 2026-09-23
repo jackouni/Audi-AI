@@ -1,4 +1,5 @@
-"""Re-runnable: glob data/raw/*.md -> parse frontmatter -> chunk the body -> embed each chunk -> insert into audi_doc.
+"""Re-runnable: 
+data/sources/ -> parse frontmatter -> chunk the body -> embed each chunk -> insert into audi_doc.
 
 Run from the project root:
 
@@ -22,8 +23,8 @@ different treatment:
 Every chunk is then prefixed with its parent document's metadata before being
 embedded — see `decorate()` for why that matters more than it looks.
 
-Safe to re-run as the corpus grows: each file's rows are deleted and rewritten,
-and rows belonging to files that no longer exist are pruned at the end.
+Safe to re-run as the corpus grows: every run rebuilds the table from whatever
+is in data/raw/ right now.
 """
 
 import re
@@ -42,7 +43,7 @@ from config import (
     OPENAI_API_KEY,
     TABLE_NAME,
 )
-from db import get_connection
+from db import get_connection, to_vector_literal
 
 # The seven frontmatter keys, copied onto every chunk row. Retrieval returns
 # chunks, not documents, so a chunk that doesn't carry its own provenance comes
@@ -77,6 +78,7 @@ NHTSA_MAX_CHARS = 4000
 
 def split_reddit(body: str) -> list[str]:
     """Split a thread into the original post plus one piece per top-level comment subtree."""
+
     parts = COMMENTS_HEADER.split(body, maxsplit=1)
     post = parts[0]
     comments = parts[1] if len(parts) > 1 else ""
@@ -129,17 +131,17 @@ def coalesce(pieces: list[str]) -> list[str]:
 
 def chunk_document(body: str, source_type: str) -> list[str]:
     """Structure-aware split, with the recursive splitter as a size-gated fallback."""
-    if source_type == "nhtsa_complaint":
-        text = body.strip()
-        # Whole, unless it is a runaway document.
-        return [text] if len(text) <= NHTSA_MAX_CHARS else fallback_splitter.split_text(text)
 
-    pieces = split_reddit(body) if source_type == "reddit_thread" else [body.strip()]
-    pieces = coalesce(pieces)
+    if source_type == "nhtsa_complaint":
+        # No structural split at all — whole, unless it is a runaway document.
+        pieces, ceiling = [body.strip()], NHTSA_MAX_CHARS
+    else:
+        pieces = split_reddit(body) if source_type == "reddit_thread" else [body.strip()]
+        pieces, ceiling = coalesce(pieces), CHUNK_SIZE
 
     chunks = []
     for piece in pieces:
-        if len(piece) <= CHUNK_SIZE:
+        if len(piece) <= ceiling:
             chunks.append(piece)  # already a clean semantic unit
         else:
             chunks.extend(fallback_splitter.split_text(piece))
@@ -160,8 +162,9 @@ def decorate(text: str, meta: dict) -> str:
     is what keeps this readable while `engine` and Reddit's `year_range` are
     still unpopulated.
     """
-    tag = " · ".join(str(meta.get(f, "")).strip() for f in ("model", "year_range", "category", "source_type") if str(meta.get(f, "")).strip())
-    title = str(meta.get("title", "")).strip()
+    values = [str(meta.get(f) or "").strip() for f in ("model", "year_range", "category", "source_type")]
+    tag = " · ".join(v for v in values if v)
+    title = str(meta.get("title") or "").strip()
     header = f"[{tag}] {title}".strip() if tag else title
     return f"{header}\n{text}" if header else text
 
@@ -190,8 +193,8 @@ def embed(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
-def write_chunks(rows: list[tuple], source_files: set[str]) -> None:
-    """Replace each file's rows, then drop rows for files that no longer exist."""
+def write_chunks(rows: list[tuple]) -> None:
+    """Replace the table's contents with this run's chunks, in one transaction."""
     insert = f"""
         INSERT INTO {TABLE_NAME}
             (source_file, chunk_index, chunk_text, embedding,
@@ -200,26 +203,16 @@ def write_chunks(rows: list[tuple], source_files: set[str]) -> None:
     """
 
     with get_connection() as conn, conn.cursor() as cur:
-        # Delete-then-insert rather than upsert: a file whose chunk count shrank
-        # would otherwise leave its orphaned tail rows behind.
-        for source_file in sorted(source_files):
-            cur.execute(f"DELETE FROM {TABLE_NAME} WHERE source_file = %s;", (source_file,))
-
+        # Wipe-then-insert rather than upsert: a run always re-chunks every file
+        # in data/raw/, so this is the whole corpus anyway — and it takes care of
+        # shrunken files and deleted ones without a second pass.
+        cur.execute(f"DELETE FROM {TABLE_NAME};")
         cur.executemany(insert, rows)
-
-        cur.execute(
-            f"DELETE FROM {TABLE_NAME} WHERE NOT (source_file = ANY(%s));",
-            (sorted(source_files),),
-        )
-        pruned = cur.rowcount
-
         conn.commit()
 
         cur.execute(f"SELECT count(*) FROM {TABLE_NAME};")
         (total,) = cur.fetchone()
 
-    if pruned:
-        print(f"Pruned {pruned} rows from files no longer in {DATA_DIR.name}/.")
     print(f"{TABLE_NAME} now holds {total} chunks.")
 
 
@@ -269,13 +262,13 @@ def main(dry_run: bool = False) -> None:
             text,
             # psycopg2 has no vector adapter; the string literal is cast to
             # vector by the column type on insert.
-            "[" + ",".join(str(value) for value in vector) + "]",
-            *(str(metadata.get(field, "") or "") for field in METADATA_FIELDS),
+            to_vector_literal(vector),
+            *(str(metadata.get(field) or "") for field in METADATA_FIELDS),
         )
         for (filename, index, text, metadata), vector in zip(rows_without_vectors, vectors)
     ]
 
-    write_chunks(rows, {filename for filename, _, _ in documents})
+    write_chunks(rows)
 
 
 if __name__ == "__main__":

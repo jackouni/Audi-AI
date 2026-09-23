@@ -51,8 +51,8 @@ def to_vector_literal(embedding: list[float]) -> str:
     """Format a Python list as the '[0.1,0.2,...]' literal pgvector parses.
 
     psycopg2 ships no adapter for the vector type, so the value travels as text
-    and the `::vector` cast in the query turns it back into a vector. Same trick
-    ingest.py uses on insert.
+    and the `::vector` cast in the query turns it back into a vector. ingest.py
+    imports this for its inserts, where the column type does the cast instead.
     """
 
     return "[" + ",".join(str(value) for value in embedding) + "]"
