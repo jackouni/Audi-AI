@@ -50,19 +50,17 @@ if not OPENAI_API_KEY:
 
 TOP_K = 5
 
-# Cosine similarity, not distance: higher is closer.
+# Both numbers are measured, not guessed — `scripts/probe_thresholds.py`
+# Scores for this corpus:
 #
-# Both numbers are measured, not guessed — `scripts/probe_thresholds.py` prints
-# the scores these came from. On this corpus:
-#
-#   answerable question     top chunk 0.70-0.73
+#   answerable question      top chunk 0.70-0.73
 #   car-adjacent but absent  top chunk 0.52-0.60   (B8 torque spec, BMW mounts)
 #   unrelated entirely       top chunk 0.18-0.27   (sourdough, driving directions)
 #
 # The trap is the middle band. Every document here is Audi A4 prose, so any
-# car-shaped question matches *something* at ~0.5 — which is why a 0.3 floor
+# car-shaped question matches *something* at ~0.5 — which is why a 0.3
 # never fired and the model got handed five irrelevant chunks to answer over.
-SIMILARITY_THRESHOLD = 0.45  # hard floor: below this a chunk is dropped entirely
+SIMILARITY_THRESHOLD = 0.5  # hard floor: below this a chunk is dropped entirely
 
 # If even the BEST chunk is under this, the corpus probably doesn't cover the
 # question. The chunks still go to the model, but framed as weak background

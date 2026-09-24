@@ -31,8 +31,8 @@ from memory import ChatHistory
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Deliberately narrow. The condenser is not a mini-assistant — it rewrites and
-# nothing else. "Do not answer it" is in there because gpt-4o-mini will happily
+# The condenser is not a mini-assistant — it rewrites and nothing else.
+# "Do not answer it" is in there because gpt-4o-mini will happily
 # start diagnosing the car if you let it, and that answer would then get embedded
 # instead of the question.
 CONDENSER_PROMPT = """\
@@ -50,8 +50,8 @@ they were mentioned several turns ago.
 """
 
 # The condenser only needs enough history to resolve a reference, and a short
-# window keeps this call cheap and fast. Six messages is three turns back.
-CONDENSER_WINDOW = 6
+# window keeps this call cheap and fast.
+CONDENSER_WINDOW = 10
 
 
 def condense(question: str, history: ChatHistory | None) -> str:
@@ -62,20 +62,19 @@ def condense(question: str, history: ChatHistory | None) -> str:
     results at exactly the moment a demo is going well.
 
     Two shortcuts worth noting:
-    - No history (None, or empty) means there is nothing to resolve, so the
-      call is skipped entirely. First question of a session costs zero extra
-      latency.
+    - No history (None, or empty) means there is nothing to resolve, so the call is skipped entirely.
     - A failed condenser falls back to the raw question rather than raising.
       Slightly worse retrieval beats no answer, and the caller can't do anything
       useful with the exception anyway.
     """
     if not history:
         return question
+  
+    recent_messages = history.to_list()[-CONDENSER_WINDOW:] 
 
-    recent = history.to_list()[-CONDENSER_WINDOW:]
     messages = [
         {"role": "developer", "content": CONDENSER_PROMPT},
-        *recent,
+        *recent_messages,
         {"role": "user", "content": f"Latest message: {question}\n\nStandalone search query:"},
     ]
 
@@ -112,7 +111,7 @@ def search(
     says so, which is the behavior we want for an off-topic question.
     """
     query = condense(question, history)
-    return similarity_search(embed_query(query), k=k, threshold=threshold)
+    return similarity_search(embed_query(query), k, threshold)
 
 
 if __name__ == "__main__":
