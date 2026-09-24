@@ -57,9 +57,9 @@ TOP_K = 5
 #   car-adjacent but absent  top chunk 0.52-0.60   (B8 torque spec, BMW mounts)
 #   unrelated entirely       top chunk 0.18-0.27   (sourdough, driving directions)
 #
-# The trap is the middle band. Every document here is Audi A4 prose, so any
-# car-shaped question matches *something* at ~0.5 — which is why a 0.3
-# never fired and the model got handed five irrelevant chunks to answer over.
+# The trap is the middle band. Any car-shaped question matches *something* 
+# at ~0.5 — which is why a 0.3 never fired and the model got handed five 
+# irrelevant chunks to answer over.
 SIMILARITY_THRESHOLD = 0.5  # hard floor: below this a chunk is dropped entirely
 
 # If even the BEST chunk is under this, the corpus probably doesn't cover the

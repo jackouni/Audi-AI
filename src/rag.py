@@ -15,7 +15,7 @@ plain user/assistant messages.
 
 from openai import OpenAI
 
-from config import CHAT_MODEL, OPENAI_API_KEY, STRONG_MATCH_THRESHOLD
+from config import CHAT_MODEL, OPENAI_API_KEY, STRONG_MATCH_THRESHOLD, SIMILARITY_THRESHOLD
 from memory import ChatHistory
 from retrieval import search
 
@@ -88,8 +88,10 @@ cannot point to in an excerpt.
 # from inventing a citation for an answer it pulled from general knowledge.
 NO_CONTEXT = """\
 The search of the reference corpus returned nothing above the relevance \
-threshold for this question. Answer from general knowledge, and say up front \
-that the sources don't cover it.
+threshold for this question. Don't answer from your general knowledge, \ 
+tell the user that the question is unrelated to the corpus and that they \ 
+should stick to asking questions around the Audi A4. \
+DO NOT ANSWER THEIR QUESTION!
 """
 
 EXCERPT_TEMPLATE = """\
@@ -137,11 +139,16 @@ def retrieve_context(question: str, history: ChatHistory) -> str:
     if not chunks:
         return NO_CONTEXT
 
-    template = (
-        CONTEXT_TEMPLATE
-        if chunks[0]["similarity"] >= STRONG_MATCH_THRESHOLD
-        else WEAK_CONTEXT_TEMPLATE
-    )
+    similarity_score = chunks[0]["similarity"]
+
+    template = None
+    if similarity_score >= STRONG_MATCH_THRESHOLD:
+      template = CONTEXT_TEMPLATE
+    elif similarity_score >= SIMILARITY_THRESHOLD:
+      template = WEAK_CONTEXT_TEMPLATE
+    else:
+       template = NO_CONTEXT
+
     return template.format(context=format_chunks(chunks))
 
 
