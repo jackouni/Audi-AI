@@ -17,6 +17,7 @@ they change what's on screen, and what's on screen *is* the history.
 """
 
 import os
+from itertools import pairwise
 
 import gradio as gr
 
@@ -35,24 +36,17 @@ EXAMPLES = [
     "My B9 is burning oil between changes. Is that a known problem?",
     "What are the common carbon buildup symptoms on the 2.0T?",
     "Are there any open recalls on the 2018 A4?",
-    "Is a catback exhaust CARB legal for this car?",
 ]
 
 
 def to_chat_history(messages: list[dict]) -> ChatHistory:
-    """Rebuild a ChatHistory from Gradio's message list.
-
-    Pairs user messages with the assistant reply that follows so each one goes
-    through `add_turn` — that keeps the MAX_MESSAGES trimming in memory.py in
-    charge of the window instead of duplicating the rule here. An unanswered
-    trailing user message is skipped; it's the question being asked right now,
-    and rag.ask() appends it itself.
-    """
     history = ChatHistory()
 
-    for message, following in zip(messages, messages[1:]):
-        if message["role"] == "user" and following["role"] == "assistant":
-            history.add_turn(message["content"], following["content"])
+    # Builds ONLY the user-assistant exchange
+    for prev, curr in pairwise(messages): 
+        if prev["role"] != "user" or curr["role"] != "assistant":
+            continue
+        history.add_turn(prev["content"], curr["content"])
 
     return history
 
@@ -63,8 +57,7 @@ def respond(question: str, messages: list[dict]) -> str:
         return ask(question, to_chat_history(messages))
     except Exception as error:
         # gr.Error surfaces a toast and leaves the failed turn out of the
-        # transcript — the same "keep history intact" behaviour as main.py,
-        # since here the transcript IS the history.
+        # transcript — the same "keep history intact" behaviour
         raise gr.Error(f"Something went wrong: {error}")
 
 
