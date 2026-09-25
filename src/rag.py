@@ -166,21 +166,22 @@ def build_input(question: str, history: ChatHistory, context: str) -> list[dict]
     ]
 
 
-def ask(question: str, history: ChatHistory) -> str:
-    """Answer a question in the context of the conversation so far.
+def ask(question: str, chat_history: ChatHistory) -> str:
+    """Answer a question in the context of the user-assistant chat so far.
 
-    The one function every interface calls. Appends the completed turn to
-    `history` as a side effect — and only after the API call succeeds, so a
-    failed request doesn't leave a dangling user message with no answer under it.
+    Appends the completed turn to `chat_history` as a side effect - and only after 
+    the API call succeeds, so a failed request doesn't leave a dangling user 
+    message with no answer under it.
     """
-    context = retrieve_context(question, history)
+
+    context = retrieve_context(question, chat_history)
 
     response = client.responses.create(
         model=CHAT_MODEL,
-        input=build_input(question, history, context),
+        input=build_input(question, chat_history, context),
     )
     answer = response.output_text
 
-    history.add_turn(question, answer)
+    chat_history.add_turn(question, answer)
 
     return answer

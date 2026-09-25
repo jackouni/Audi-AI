@@ -28,19 +28,19 @@ class Message:
 
 
 class ChatHistory:
-    # An ordered list of Messages. 
+    # An ordered list of Messages.
     # Becomes a list of dicts at API call time.
 
     def __init__(self):
         self.messages: list[Message] = []
 
     def add_turn(self, question: str, answer: str) -> None:
-        """Append a completed user/assistant exchange, then drop anything that
+        """Append a completed user-assistant exchange, then drop anything that
         no longer fits the window.
 
-        Oldest-first rather than the lab's summarize-and-reset: for a repair Q&A
-        the useful context is the last few turns (which car, which symptom), and
-        a dropped turn costs less than a summarization call on every long chat.
+        Oldest-first for a repair Q&A - the useful context is the last few turns 
+        (which car, which symptom), and a dropped turn costs less than a 
+        summarization call on every long chat.
         Swap in summarized memory later if a demo ever needs it.
         """
         self.messages.append(Message("user", question))
