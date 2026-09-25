@@ -1,4 +1,5 @@
-"""Message / ChatHistory, reused from the conversation-loop lab. Retrieved chunks never go in here — inject fresh each turn.
+"""Message / ChatHistory, reused from the conversation-loop lab. 
+Retrieved chunks never go in here — inject fresh each turn.
 
 The model is stateless: it forgets the instant it responds. "Memory" is just the
 list of past turns re-sent on every request, which is all these two classes are.
@@ -16,9 +17,6 @@ MAX_MESSAGES = 20
 
 
 class Message:
-    # One turn in the conversation. 
-    # Becomes a dict at API call time.
-
     def __init__(self, role: str, content: str):
         self.role = role
         self.content = content
@@ -28,9 +26,6 @@ class Message:
 
 
 class ChatHistory:
-    # An ordered list of Messages.
-    # Becomes a list of dicts at API call time.
-
     def __init__(self):
         self.messages: list[Message] = []
 
@@ -38,8 +33,8 @@ class ChatHistory:
         """Append a completed user-assistant exchange, then drop anything that
         no longer fits the window.
 
-        Oldest-first for a repair Q&A - the useful context is the last few turns 
-        (which car, which symptom), and a dropped turn costs less than a 
+        The useful context is the last few turns (which car, which symptom), 
+        and a dropped turn costs less than a 
         summarization call on every long chat.
         Swap in summarized memory later if a demo ever needs it.
         """

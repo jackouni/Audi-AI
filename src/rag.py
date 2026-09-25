@@ -125,16 +125,22 @@ def format_chunks(chunks: list[dict]) -> str:
 def retrieve_context(question: str, history: ChatHistory) -> str:
     """Fetch reference chunks for this question and build the context message.
 
-    Everything interesting happens in retrieval.py — condensing the follow-up
-    into a standalone query, embedding it, running the similarity search. This
-    function is just the seam where chunk dicts become prompt text.
+    Everything interesting happens in retrieval.py: 
+      - condensing the follow-up messages into a standalone query
+      - embedding standalone query and running a similarity search. 
+      
+    This function is where retrieved chunks get augmented into a final prompt.
 
     Returns the finished developer message, not raw excerpts, because the three
     outcomes need different framing: a solid hit list is introduced as "your
     sources", a weak one as "probably not the answer", an empty result as "the
     search found nothing".
     """
+
     chunks = search(question, history)
+    # TODO: strong vs weak chunks
+    # strong_chunks = [ch for ch in chunks if ch["similarity"] >= STRONG_MATCH_THRESHOLD]
+    # weak_chunks = [ch for ch in chunks if ch["similarity"] < STRONG_MATCH_THRESHOLD and ch["similarity"] >= SIMILARITY_THRESHOLD]
 
     if not chunks:
         return NO_CONTEXT
@@ -153,7 +159,7 @@ def retrieve_context(question: str, history: ChatHistory) -> str:
 
 
 def build_input(question: str, history: ChatHistory, context: str) -> list[dict]:
-    """System prompt + (context) + history + question, as the API wants it.
+    """System prompt + (context) + history + question
 
     Order matters: instructions first, then the fresh context, then the running
     conversation, then the new question last so it's the thing being answered.
