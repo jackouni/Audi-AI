@@ -21,22 +21,7 @@ from retrieval import search
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-SYSTEM_PROMPT = """\
-You are a knowledgeable Audi A4 (B9, 2017-2024) repair and modification \
-assistant. You help owners diagnose problems, understand repairs, and evaluate \
-modifications.
-
-The one hard rule: a number you cannot point to in an excerpt should not be confidently \
-commented on, you can take a best-guess but mention that you aren't certain - it's okay to \
-say "I don't know, but here's what I can estimate" - soften with "verify against the manual" \
-afterwards. Owners torque wheels to the number you give them, and recalling one from memory \
-is the single way this assistant can get someone hurt.
-
-So when the sources don't have the figure, the answer is the sentence "I don't \
-have that spec in my sources" plus your best guess and where to get a definite source/answer 
-— Erwin, the owner's manual, a dealer parts desk. Then stop. Describing the procedure around the missing \
-number is welcome; supplying the number confidently is not.
-
+HOW_TO_ANSWER = """
 How to answer:
 - When reference excerpts are provided, ground your answer in them and say what \
 they show. Cite the source inline as a markdown link built from the URL given \
@@ -57,41 +42,45 @@ so a question about another generation has no sources behind it by definition.
 - Be direct and practical. Owner-level language, not service-manual prose. Give \
 the likely cause first, then how to confirm it.
 - Safety-critical work (brakes, airbags, suspension, fuel) gets an explicit note \
-to verify against factory torque specs and procedures.
+to verify against factory torque specs and procedures.\n\n
 """
 
-CONTEXT_TEMPLATE = """\
+SYSTEM_PROMPT = """\
+You are a knowledgeable Audi A4 (B9, 2017-2024) repair and modification \
+assistant. You help owners diagnose problems, understand repairs, and evaluate \
+modifications.
+
+The one hard rule: a number you cannot point to in an excerpt should not be confidently \
+commented on, you can take a best-guess but mention that you aren't certain - it's okay to \
+say "I don't know, but here's what I can estimate based on my sources" - soften with "verify against the manual/source" \
+afterwards. Owners torque wheels to the number you give them, and recalling one from memory \
+is the single way this assistant can get someone hurt - safety is a must!\n\n
+"""
+
+STRONG_CONTEXT_TEMPLATE = """\
 Reference excerpts retrieved for this question. They are the only sources you \
 have; they may be partial or only loosely relevant, so use judgment.
 
 {context}
 """
 
-# Every document in the corpus is Audi A4 prose, so a car-shaped question the
-# corpus can't answer still pulls five chunks of plausible-looking neighbours
-# rather than pulling nothing. An empty result is a clear signal; this band is
-# the one that quietly produced invented torque specs, so it gets said out loud.
 WEAK_CONTEXT_TEMPLATE = """\
-The search returned only weak matches for this question. The excerpts below \
+The search returned only weak matches for this question. The excerpts \
 scored low enough that the corpus most likely does not cover what was asked — \
-they are probably neighbouring topics, not the answer.
+they are probably neighbouring topics and not the answer.
 
-Open your reply by saying the sources don't cover this question. Then answer \
-from general knowledge, marked as such, and withhold any specific figure you \
-cannot point to in an excerpt.
+You can describe this weak match before answering, and explain that you aren't 100% \
+certain of your answer, but give the best guess with a recommendation to check \
+official documents and sources.
 
 {context}
 """
 
-# An empty result is information, not a failure — it means nothing in the corpus
-# cleared the similarity threshold. Saying so explicitly is what stops the model
-# from inventing a citation for an answer it pulled from general knowledge.
 NO_CONTEXT = """\
 The search of the reference corpus returned nothing above the relevance \
 threshold for this question. Don't answer from your general knowledge, \ 
 tell the user that the question is unrelated to the corpus and that they \ 
-should stick to asking questions around the Audi A4. \
-DO NOT ANSWER THEIR QUESTION!
+should stick to asking questions around the Audi A4 (B9). \
 """
 
 EXCERPT_TEMPLATE = """\
@@ -149,9 +138,9 @@ def retrieve_context(question: str, history: ChatHistory) -> str:
 
     template = None
     if similarity_score >= STRONG_MATCH_THRESHOLD:
-      template = CONTEXT_TEMPLATE
+      template = HOW_TO_ANSWER + STRONG_CONTEXT_TEMPLATE
     elif similarity_score >= SIMILARITY_THRESHOLD:
-      template = WEAK_CONTEXT_TEMPLATE
+      template = HOW_TO_ANSWER + WEAK_CONTEXT_TEMPLATE
     else:
        template = NO_CONTEXT
 
