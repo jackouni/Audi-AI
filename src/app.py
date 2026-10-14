@@ -36,6 +36,7 @@ EXAMPLES = [
     "My B9 is burning oil between changes. Is that a known problem?",
     "What are the common carbon buildup symptoms on the 2.0T?",
     "Are there any open recalls on the 2018 A4?",
+    "Who's the 3rd Ugandan president?"
 ]
 
 

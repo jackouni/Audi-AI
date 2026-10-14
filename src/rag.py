@@ -65,12 +65,12 @@ have; they may be partial or only loosely relevant, so use judgment.
 """
 
 WEAK_CONTEXT_TEMPLATE = """\
-The search returned only weak matches for this question. The excerpts \
+The search returned only weak matches for this question. The excerpts/sources \
 scored low enough that the corpus most likely does not cover what was asked — \
 they are probably neighbouring topics and not the answer.
 
-You can describe this weak match before answering, and explain that you aren't 100% \
-certain of your answer, but give the best guess with a recommendation to check \
+Describe this weak match before answering, that this isn't covered in your sources, \ 
+explain that you aren't 100 percent certain of your answer, but give the best guess with a recommendation to check \
 official documents and sources.
 
 {context}
