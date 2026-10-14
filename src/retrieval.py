@@ -1,8 +1,7 @@
-"""Condense (history + question -> standalone query) -> embed -> search the vector DB -> top-k chunks.
+"""Condense (history + question -> standalone query) -> embed -> search the vector DB -> Return top-k chunks.
 
-The contract upward is one function:
-
-    search(question, history) -> list[dict]
+The contract upward is one function: 
+  search(question, history) -> list[dict]
 
 Each dict is a chunk row from audi_doc plus a `similarity` score. rag.py never
 learns that a condenser or an embedding model was involved.
@@ -51,30 +50,29 @@ they were mentioned several turns ago.
 
 # The condenser only needs enough history to resolve a reference, and a short
 # window keeps this call cheap and fast.
-CONDENSER_WINDOW = 10
+CONDENSER_WINDOW = 5
 
 
 def condense(question: str, history: ChatHistory | None) -> str:
-    """Turn a conversational follow-up into a query that means something alone.
+    """Turn a conversational follow-up message into a query that means something alone.
 
     Retrieval fires before history reaches the prompt, so "how hard is it to
-    replace?" gets embedded with nothing to resolve "it" against — garbage
-    results at exactly the moment a demo is going well.
+    replace?" gets embedded with nothing to resolve "it" against.
+    Garbage embedding means garbage results that come back.
 
-    Two shortcuts worth noting:
-    - No history (None, or empty) means there is nothing to resolve, so the call is skipped entirely.
-    - A failed condenser falls back to the raw question rather than raising.
-      Slightly worse retrieval beats no answer, and the caller can't do anything
-      useful with the exception anyway.
+    Two exceptions/returns worth noting:
+      - No `history` means there is nothing to resolve - returns question
+      - Failed embedding call? - returns question
     """
+
     if not history:
         return question
   
-    recent_messages = history.to_list()[-CONDENSER_WINDOW:] 
+    most_recent_messages = history.to_list()[-CONDENSER_WINDOW:] 
 
     messages = [
         {"role": "developer", "content": CONDENSER_PROMPT},
-        *recent_messages,
+        *most_recent_messages,
         {"role": "user", "content": f"Latest message: {question}\n\nStandalone search query:"},
     ]
 
@@ -110,8 +108,10 @@ def search(
     that are merely the least irrelevant. rag.py treats that as "no sources" and
     says so, which is the behavior we want for an off-topic question.
     """
+
     query = condense(question, history)
-    return similarity_search(embed_query(query), k, threshold)
+    query_embedding = embed_query(query)
+    return similarity_search(query_embedding, k, threshold)
 
 
 if __name__ == "__main__":

@@ -36,13 +36,13 @@ EXAMPLES = [
     "My B9 is burning oil between changes. Is that a known problem?",
     "What are the common carbon buildup symptoms on the 2.0T?",
     "Are there any open recalls on the 2018 A4?",
+    "Who's the 3rd Ugandan president?"
 ]
 
 
 def to_chat_history(messages: list[dict]) -> ChatHistory:
-    history = ChatHistory()
-
     # Builds ONLY the user-assistant exchange
+    history = ChatHistory()
     for prev, curr in pairwise(messages): 
         if prev["role"] != "user" or curr["role"] != "assistant":
             continue
@@ -54,7 +54,8 @@ def to_chat_history(messages: list[dict]) -> ChatHistory:
 def respond(question: str, messages: list[dict]) -> str:
     """The Gradio callback. Everything real happens inside ask()."""
     try:
-        return ask(question, to_chat_history(messages))
+        chat_history = to_chat_history(messages)
+        return ask(question, chat_history)
     except Exception as error:
         # gr.Error surfaces a toast and leaves the failed turn out of the
         # transcript — the same "keep history intact" behaviour
@@ -67,7 +68,7 @@ demo = gr.ChatInterface(
     title="Audi A4 B9 (2017-2024) repair & mod assistant",
     description=DESCRIPTION,
     examples=EXAMPLES,
-    cache_examples=False,  # each example is a live API call; don't prebake them
+    cache_examples=False,
 )
 
 

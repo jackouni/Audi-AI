@@ -10,7 +10,7 @@ from config import DB_PARAMS, SIMILARITY_THRESHOLD, TABLE_NAME, TOP_K
 # opposite. `1 - distance` flips it into the similarity everyone actually reasons
 # about, which is also the unit SIMILARITY_THRESHOLD is written in.
 #
-# The threshold matters more than it looks. Without it a question the corpus has
+# The threshold matters more than it looks. Without it, a question the corpus has
 # nothing to say about still returns five chunks — the five least-irrelevant ones
 # — and the model dutifully answers from them. With it, a bad question returns
 # zero rows and rag.py can tell the model it has no sources.
