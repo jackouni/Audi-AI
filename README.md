@@ -18,3 +18,5 @@ python src/setup_db.py
 python src/ingest.py
 python src/main.py
 ```
+
+Just a quick test!
